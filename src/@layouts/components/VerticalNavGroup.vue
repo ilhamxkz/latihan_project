@@ -23,12 +23,6 @@ const isOpen = ref(false)
         class="nav-item-icon"
       />
       <span class="nav-item-title">{{ item.title }}</span>
-      <span
-        class="nav-item-badge"
-        :class="item.badgeClass"
-      >
-        {{ item.badgeContent }}
-      </span>
       <VIcon
         icon="ri-arrow-right-s-line"
         class="nav-group-arrow"
