@@ -1,7 +1,7 @@
 <script setup>
+import logo from '@images/logo.svg?raw'
 import { PerfectScrollbar } from 'vue3-perfect-scrollbar'
 import { useDisplay } from 'vuetify'
-import logo from '@images/logo.svg?raw'
 
 const props = defineProps({
   tag: {
@@ -28,7 +28,9 @@ Close overlay vertical nav when link is clicked
 const route = useRoute()
 
 watch(() => route.path, () => {
-  props.toggleIsOverlayNavActive(false)
+  if (mdAndDown.value) {
+    props.toggleIsOverlayNavActive(false)
+  }
 })
 
 const isVerticalNavScrolled = ref(false)

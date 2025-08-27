@@ -32,6 +32,14 @@ export const routes = [
         path: 'form-layouts',
         component: () => import('@/pages/form-layouts.vue'),
       },
+      {
+        path: 'users',
+        component: () => import('@/pages/users.vue'),
+      },
+      {
+        path: 'roles',
+        component: () => import('@/pages/roles.vue'),
+      },
     ],
   },
   {
