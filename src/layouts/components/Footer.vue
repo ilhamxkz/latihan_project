@@ -1,33 +1,3 @@
-<script setup>
-import axios from 'axios'
-import { useRouter } from 'vue-router'
-
-const router = useRouter()
-
-const handleLogout = async () => {
-  try {
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token')
-
-    await axios.post(
-      'http://localhost:8080/api/logout',
-      {},
-      { headers: { Authorization: `Bearer ${token}` } }
-    )
-
-    // Hapus token di localStorage/sessionStorage
-    localStorage.removeItem('token')
-    sessionStorage.removeItem('token')
-
-    alert('Logout berhasil!')
-    router.push('/login')
-  } catch (error) {
-    console.error('Logout gagal:', error)
-    alert('Logout gagal, silakan coba lagi')
-  }
-}
-
-</script>
-
 <template>
   <div class="h-100 d-flex align-center justify-md-space-between justify-center">
     <!-- 👉 Footer: left content -->
@@ -48,7 +18,6 @@ const handleLogout = async () => {
         class="text-primary ms-1"
       >ThemeSelection</a>
     </span>
-
     <!-- 👉 Footer: right content -->
     <span class="d-md-flex gap-x-4 text-primary d-none">
       <a
@@ -67,15 +36,6 @@ const handleLogout = async () => {
         href="https://themeselection.com/support/"
         target="noopener noreferrer"
       >Support</a>
-
-      <!-- 🔹 Logout Link -->
-      <a
-        href="javascript:void(0)"
-        @click="handleLogout"
-        class="text-error"
-      >
-        Logout
-      </a>
     </span>
   </div>
 </template>

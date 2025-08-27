@@ -341,7 +341,7 @@ const recentDevices = [
           hide-default-footer
           class="text-no-wrap"
         >
-          <template #item.browser="{ item }">
+          
             <div class="d-flex">
               <VIcon
                 start
@@ -352,7 +352,7 @@ const recentDevices = [
                 {{ item.browser }}
               </span>
             </div>
-          </template>
+          
           <!-- TODO Refactor this after vuetify provides proper solution for removing default footer -->
           <template #bottom />
         </VDataTable>

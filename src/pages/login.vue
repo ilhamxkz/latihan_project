@@ -3,12 +3,12 @@ import { ref, computed } from 'vue'
 import { useTheme } from 'vuetify'
 import { useRouter } from 'vue-router'
 import AuthProvider from '@/views/pages/authentication/AuthProvider.vue'
+import logo from '@images/dst.png'
 import authV1MaskDark from '@images/pages/auth-v1-mask-dark.png'
 import authV1MaskLight from '@images/pages/auth-v1-mask-light.png'
 import authV1Tree2 from '@images/pages/auth-v1-tree-2.png'
 import authV1Tree from '@images/pages/auth-v1-tree.png'
 import axios from 'axios'
-import logodst from '@/assets/images/logos/logodst.png'
 
 const router = useRouter()
 const form = ref({
@@ -21,16 +21,22 @@ const loading = ref(false)
 const vuetifyTheme = useTheme()
 const isPasswordVisible = ref(false)
 
+// state untuk notif
+const notif = ref({
+  show: false,
+  type: '',   // 'success' atau 'danger'
+  message: ''
+})
+
 const authThemeMask = computed(() => {
   return vuetifyTheme.global.name.value === 'light' ? authV1MaskLight : authV1MaskDark
 })
 
-// Ubah URL ini ke endpoint login backend kamu
-const API_URL = 'http://localhost:8080/api/login'
+const API_URL = 'http://localhost:8000/login'
 
 const login = async () => {
   if (!form.value.username || !form.value.password) {
-    window.alert('Username dan password harus diisi.')
+    notif.value = { show: true, type: 'danger', message: 'Username dan password harus diisi.' }
     return
   }
 
@@ -41,30 +47,27 @@ const login = async () => {
       password: form.value.password,
     })
 
-// setelah response dari axios.post login
-const token = response.data.token
+    const token = response.data.token
 
-// simpan sesuai pilihan remember
-if (form.value.remember) {
-  localStorage.setItem('token', token)
-    sessionStorage.setItem('token', token)
+    if (form.value.remember) {
+      localStorage.setItem('token', token)
+      sessionStorage.removeItem('token')
+    } else {
+      sessionStorage.setItem('token', token)
+      localStorage.removeItem('token')
+    }
 
-} else {
-    localStorage.setItem('token', token)
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
 
-  sessionStorage.setItem('token', token)
-}
+    notif.value = { show: true, type: 'success', message: 'Login berhasil! Mengarahkan ke dashboard...' }
 
-// set default header untuk semua request axios
-axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-    // tampilkan pesan sukses
-    window.alert('Login berhasil! Mengarahkan ke dashboard...')
+    setTimeout(() => {
+      router.push('/dashboard')
+    }, 1500)
 
-    // redirect ke dashboard
-    router.push('/dashboard')
   } catch (error) {
     const msg = error.response?.data?.error || error.message || 'Terjadi kesalahan'
-    window.alert('Login gagal: ' + msg)
+    notif.value = { show: true, type: 'danger', message: 'Login gagal: ' + msg }
   } finally {
     loading.value = false
   }
@@ -72,15 +75,21 @@ axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
 </script>
 
 <template>
-  <div class="auth-wrapper d-flex align-center justify-center pa-4">
+  <!-- Wrapper full height supaya card center -->
+  <div class="auth-wrapper d-flex align-center justify-center pa-4" style="min-height: 100vh;">
     <VCard class="auth-card pa-4 pt-7" max-width="448">
+
+      <!-- Logo -->
       <VCardItem class="justify-center">
-        <img :src="logodst" alt="Logo" style="height: 40px;" />
+        <RouterLink to="/" class="d-flex align-center gap-3">
+          <img :src="logo" alt="Logo" style="width:300px; height:auto;" />
+        </RouterLink>
       </VCardItem>
 
-      <VCardText class="pt-2">
-        <h4 class="text-h4 mb-1">selamat datang di halaman login! 👋🏻</h4>
-        <p class="mb-0">silahkan login untuk masuk ke aplikasi</p>
+      <!-- Title -->
+      <VCardText class="pt-2 text-center">
+        <h4 class="text-h4 mb-1">Selamat datang di halaman login!</h4>
+        <p class="mb-0">Silahkan login untuk masuk ke aplikasi</p>
       </VCardText>
 
       <VCardText>
@@ -101,12 +110,19 @@ axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
                 @click:append-inner="isPasswordVisible = !isPasswordVisible"
               />
 
+              <!-- 🔔 Notif pindah ke bawah password -->
+              <div v-if="notif.show" class="mt-2">
+                <div :class="['alert', `alert-${notif.type}`, 'alert-dismissible', 'fade', 'show']" role="alert">
+                  {{ notif.message }}
+                  <button type="button" class="btn-close" @click="notif.show = false"></button>
+                </div>
+              </div>
+
               <div class="d-flex align-center justify-space-between flex-wrap my-6">
                 <VCheckbox v-model="form.remember" label="Remember me" />
                 <a class="text-primary" href="javascript:void(0)">Forgot Password?</a>
               </div>
 
-              <!-- tombol disable saat loading -->
               <VBtn :loading="loading" :disabled="loading" block type="submit">
                 Login
               </VBtn>
@@ -131,12 +147,7 @@ axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
       </VCardText>
     </VCard>
 
-    <VImg class="auth-footer-start-tree d-none d-md-block" :src="authV1Tree" :width="250" />
-    <VImg :src="authV1Tree2" class="auth-footer-end-tree d-none d-md-block" :width="350" />
-    <VImg class="auth-footer-mask d-none d-md-block" :src="authThemeMask" />
+    <!-- Dekorasi -->
+    
   </div>
 </template>
-
-<style lang="scss">
-@use "@core/scss/template/pages/page-auth";
-</style>

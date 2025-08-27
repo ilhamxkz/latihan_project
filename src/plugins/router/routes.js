@@ -1,5 +1,8 @@
 export const routes = [
-  { path: '/', redirect: '/dashboard' },
+  // Redirect root ke login dulu
+  { path: '/', redirect: '/login' },
+
+  // Layout utama (setelah login)
   {
     path: '/',
     component: () => import('@/layouts/default.vue'),
@@ -10,7 +13,7 @@ export const routes = [
       },
       {
         path: 'account-settings',
-        component: () => import('@/pages/account-settings.vue'),
+        component: () => import('@/pages/Role.vue'),
       },
       {
         path: 'typography',
@@ -32,8 +35,14 @@ export const routes = [
         path: 'form-layouts',
         component: () => import('@/pages/form-layouts.vue'),
       },
+      {
+        path: 'users/add',
+        component: () => import('@/pages/UserAdd.vue'),
+      },
     ],
   },
+
+  // Layout blank (login, register, error page)
   {
     path: '/',
     component: () => import('@/layouts/blank.vue'),
