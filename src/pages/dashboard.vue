@@ -1,18 +1,16 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { useRouter } from 'vue-router'
 
-// Import CSS Bootstrap + DataTables agar rapi
 import 'bootstrap/dist/css/bootstrap.min.css'
 import 'datatables.net-bs5/css/dataTables.bootstrap5.min.css'
 import 'datatables.net-buttons-bs5/css/buttons.bootstrap5.min.css'
 
-// DataTables
 import DataTable from 'datatables.net-vue3'
 import DataTablesCore from 'datatables.net-bs5'
 import Buttons from 'datatables.net-buttons-bs5'
 
-// Aktifkan DataTables core + buttons
 DataTable.use(DataTablesCore)
 DataTable.use(Buttons)
 
@@ -21,12 +19,11 @@ const loading = ref(true)
 const error = ref(null)
 
 const API_URL = 'http://localhost:8000/api/users'
+const router = useRouter()
 
-// Ambil data user
 const fetchUsers = async () => {
   loading.value = true
   error.value = null
-
   try {
     const response = await axios.get(API_URL)
     users.value = Array.isArray(response.data.data) ? response.data.data : []
@@ -37,74 +34,81 @@ const fetchUsers = async () => {
   }
 }
 
+const deleteUser = async (id) => {
+  if (confirm('Yakin ingin hapus user ini?')) {
+    try {
+      await axios.delete(`${API_URL}/${id}`)
+      await fetchUsers()
+    } catch (err) {
+      alert('Gagal hapus user: ' + (err.response?.data?.message || err.message))
+    }
+  }
+}
+
 onMounted(fetchUsers)
 </script>
 
 <template>
-  <VRow>
-    <VCol cols="12">
-      <VCard class="shadow-sm rounded-3">
-        <!-- Header Card -->
-        <VCardTitle class="d-flex align-center justify-space-between py-3 px-4 border-bottom">
-          <span class="fw-bold fs-5">Data User</span>
-        </VCardTitle>
+  <div class="container mt-4">
+    <div class="d-flex justify-content-between mb-3">
+      <h3>Data User</h3>
+      <button class="btn btn-primary" @click="router.push('/users/add')">+ Tambah User</button>
+    </div>
 
-        <!-- Konten Card -->
-        <VCardText class="p-4">
-          <div v-if="loading" class="text-center py-4">
-            <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Loading...</span>
-            </div>
-            <p class="mt-2">Sedang memuat data...</p>
-          </div>
+    <div v-if="loading" class="text-center py-4">
+      <div class="spinner-border text-primary" role="status"></div>
+      <p class="mt-2">Sedang memuat data...</p>
+    </div>
 
-          <div v-else-if="error" class="alert alert-danger text-center">
-            {{ error }}
-          </div>
+    <div v-else-if="error" class="alert alert-danger text-center">
+      {{ error }}
+    </div>
 
-          <!-- DataTable -->
-          <div v-else>
-            <DataTable
-              class="table table-striped table-hover table-bordered align-middle text-center w-100"
-              :data="users"
-              :columns="[ 
-                { title: 'ID', data: 'id' },
-                { title: 'Username', data: 'username' },
-                { title: 'Email', data: 'email' }
-              ]"
-              :options="{
-                dom: 'Bfrtip',
-                buttons: ['copy', 'csv', 'excel', 'pdf', 'print'],
-                responsive: true,
-                pageLength: 5,
-                language: {
-                  search: 'Cari:',
-                  lengthMenu: 'Tampilkan _MENU_ data',
-                  info: 'Menampilkan _START_ - _END_ dari _TOTAL_ data',
-                  paginate: { next: '›', previous: '‹' }
-                }
-              }"
-            />
-          </div>
-        </VCardText>
-      </VCard>
-    </VCol>
-  </VRow>
+    <div v-else>
+      <DataTable
+        class="table table-striped table-hover table-bordered align-middle text-center w-100"
+        :data="users"
+        :columns="[
+          { title: 'ID', data: 'id' },
+          { title: 'Username', data: 'username' },
+          { title: 'Email', data: 'email' },
+          { 
+            title: 'Aksi', 
+            data: null,
+            render: (data, type, row) => {
+              return `
+                <button class='btn btn-warning btn-sm me-1 edit-btn'>Edit</button>
+                <button class='btn btn-danger btn-sm delete-btn'>Hapus</button>
+              `
+            }
+          }
+        ]"
+        :options="{
+          dom: 'lBfrtip',
+          buttons: ['copy', 'csv', 'excel', 'pdf', 'print'],
+          pageLength: 10,
+          lengthMenu: [[10, 25, 50], [10, 25, 50]],
+          createdRow: (row, data) => {
+            row.querySelector('.edit-btn').addEventListener('click', () => router.push(`/users/${data.id}/edit`))
+            row.querySelector('.delete-btn').addEventListener('click', () => deleteUser(data.id))
+          }
+        }"
+      />
+    </div>
+  </div>
 </template>
 
+
 <style scoped>
-/* Tambahan styling agar lebih rapi */
 table.dataTable th {
   background-color: #f8f9fa;
   font-weight: 600;
   text-align: center;
 }
-
 table.dataTable td {
   vertical-align: middle;
   text-align: center;
 }
-
 table.dataTable tbody tr:hover {
   background-color: #f1f1f1;
   transition: background-color 0.2s;

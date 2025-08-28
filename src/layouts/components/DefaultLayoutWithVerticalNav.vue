@@ -2,6 +2,7 @@
 import NavItems from '@/layouts/components/NavItems.vue'
 import logo from '@images/logo.svg?raw'
 import VerticalNavLayout from '@layouts/components/VerticalNavLayout.vue'
+import SideLogout from './SideLogout.vue'
 
 // Components
 import Footer from '@/layouts/components/Footer.vue'
@@ -85,7 +86,9 @@ import UserProfile from '@/layouts/components/UserProfile.vue'
 
     <template #vertical-nav-content>
       <NavItems />
+      <side-logout/>
     </template>
+
 
     <!-- 👉 Pages -->
     <slot />

@@ -37,7 +37,7 @@ export const routes = [
       },
       {
         path: 'users/add',
-        component: () => import('@/pages/UserAdd.vue'),
+        component: () => import('@/pages/UserCreate.vue'),
       },
     ],
   },

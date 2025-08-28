@@ -1,16 +1,136 @@
 <script setup>
-import TypographyHeadlines from '@/views/user-interface/typography/TypographyHeadlines.vue'
-import TypographyTexts from '@/views/user-interface/typography/TypographyTexts.vue'
+import { ref, onMounted } from 'vue'
+import axios from 'axios'
+
+// Import CSS Bootstrap + DataTables agar rapi
+import 'bootstrap/dist/css/bootstrap.min.css'
+import 'datatables.net-bs5/css/dataTables.bootstrap5.min.css'
+import 'datatables.net-buttons-bs5/css/buttons.bootstrap5.min.css'
+
+// DataTables
+import DataTable from 'datatables.net-vue3'
+import DataTablesCore from 'datatables.net-bs5'
+import Buttons from 'datatables.net-buttons-bs5'
+
+// Aktifkan DataTables core + buttons
+DataTable.use(DataTablesCore)
+DataTable.use(Buttons)
+
+// === STATE ===
+const akses = ref([])
+const loading = ref(true)
+const error = ref(null)
+
+const API_URL = 'http://localhost:8000/api/akses'
+
+// === AXIOS INSTANCE (supaya selalu kirim token) ===
+const api = axios.create({
+  baseURL: 'http://localhost:8000/api',
+})
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+// === AMBIL DATA DARI API ===
+const fetchAkses = async () => {
+  loading.value = true
+  error.value = null
+
+  try {
+    const response = await api.get('/akses')
+
+    console.log('Response API:', response.data)
+
+    // cek apakah responsenya array langsung atau ada wrapper "data"
+    if (Array.isArray(response.data)) {
+      akses.value = response.data
+    } else if (Array.isArray(response.data.data)) {
+      akses.value = response.data.data
+    } else {
+      akses.value = []
+    }
+  } catch (err) {
+    error.value = err.response?.data?.message || err.message || 'Gagal ambil data'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(fetchAkses)
 </script>
 
 <template>
   <VRow>
     <VCol cols="12">
-      <TypographyHeadlines />
-    </VCol>
+      <VCard class="shadow-sm rounded-3">
+        <!-- Header Card -->
+        <VCardTitle class="d-flex align-center justify-space-between py-3 px-4 border-bottom">
+          <span class="fw-bold fs-5">Data Akses</span>
+        </VCardTitle>
 
-    <VCol cols="12">
-      <TypographyTexts />
+        <!-- Konten Card -->
+        <VCardText class="p-4">
+          <div v-if="loading" class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Sedang memuat data...</p>
+          </div>
+
+          <div v-else-if="error" class="alert alert-danger text-center">
+            {{ error }}
+          </div>
+
+          <!-- DataTable -->
+          <div v-else>
+            <DataTable
+              class="table table-striped table-hover table-bordered align-middle text-center w-100"
+              :data="akses"
+              :columns="[
+                { title: 'ID', data: 'id' },
+                { title: 'Role', data: 'id_menu' },
+                { title: 'Menu', data: 'id_role' }
+              ]"
+              :options="{
+                dom: 'Bfrtip',
+                buttons: ['copy', 'csv', 'excel', 'pdf', 'print'],
+                responsive: true,
+                pageLength: 5,
+                language: {
+                  search: 'Cari:',
+                  lengthMenu: 'Tampilkan _MENU_ data',
+                  info: 'Menampilkan _START_ - _END_ dari _TOTAL_ data',
+                  paginate: { next: '›', previous: '‹' }
+                }
+              }"
+            />
+          </div>
+        </VCardText>
+      </VCard>
     </VCol>
   </VRow>
 </template>
+
+<style scoped>
+/* Tambahan styling agar lebih rapi */
+table.dataTable th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  text-align: center;
+}
+
+table.dataTable td {
+  vertical-align: middle;
+  text-align: center;
+}
+
+table.dataTable tbody tr:hover {
+  background-color: #f1f1f1;
+  transition: background-color 0.2s;
+}
+</style>
