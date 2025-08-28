@@ -1,41 +1,71 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import axios from 'axios'
-
-// DataTables + Bootstrap
+import 'bootstrap/dist/css/bootstrap.min.css'
+import 'datatables.net-bs5/css/dataTables.bootstrap5.min.css'
+import 'datatables.net-buttons-bs5/css/buttons.bootstrap5.min.css'
 import DataTable from 'datatables.net-vue3'
 import DataTablesCore from 'datatables.net-bs5'
 import Buttons from 'datatables.net-buttons-bs5'
-
-// Aktifkan DataTables core + buttons
 DataTable.use(DataTablesCore)
 DataTable.use(Buttons)
 
 const roles = ref([])
 const loading = ref(true)
 const error = ref(null)
+const api = axios.create({ baseURL: 'http://localhost:8080/api' })
+api.interceptors.request.use(cfg => {
+  const token = localStorage.getItem('token')
+  if (token) cfg.headers.Authorization = `Bearer ${token}`
+  return cfg
+})
 
-const API_ROLES = 'http://localhost:8080/api/roles'
-
-// Ambil data roles
 const fetchRoles = async () => {
   loading.value = true
   error.value = null
   try {
-    const res = await axios.get(API_ROLES)
-
-    // cek response backend
-    if (Array.isArray(res.data)) {
-      roles.value = res.data
-    } else if (Array.isArray(res.data.data)) {
-      roles.value = res.data.data
-    } else {
-      roles.value = []
-    }
+    const res = await api.get('/roles')
+    if (Array.isArray(res.data)) roles.value = res.data
+    else if (Array.isArray(res.data.roles)) roles.value = res.data.roles
+    else if (Array.isArray(res.data.data)) roles.value = res.data.data
+    else roles.value = []
   } catch (err) {
-    error.value = err.response?.data?.message || err.message || 'Gagal ambil data'
-  } finally {
-    loading.value = false
+    if (err?.response?.status === 401) error.value = 'Silahkan login terlebih dahulu'
+    else error.value = err?.response?.data?.message || err.message
+  } finally { loading.value = false }
+}
+
+/* modal simple */
+const showModal = ref(false)
+const modalMode = ref('create')
+const form = reactive({ id: null, nama_role: '' })
+
+const openCreate = () => { modalMode.value = 'create'; form.id = null; form.nama_role = ''; showModal.value = true }
+const openEdit = (row) => { modalMode.value = 'edit'; form.id = row.id; form.nama_role = row.nama_role || ''; showModal.value = true }
+
+const submit = async () => {
+  try {
+    if (modalMode.value === 'create') {
+      await api.post('/roles', { nama_role: form.nama_role })
+    } else {
+      await api.put(`/roles/${form.id}`, { nama_role: form.nama_role })
+    }
+    showModal.value = false
+    await fetchRoles()
+  } catch (err) {
+    if (err?.response?.status === 401) error.value = 'Silahkan login terlebih dahulu'
+    else alert(err?.response?.data?.message || err.message)
+  }
+}
+
+const deleteRole = async (id) => {
+  if (!confirm('Hapus role ini?')) return
+  try {
+    await api.delete(`/roles/${id}`)
+    await fetchRoles()
+  } catch (err) {
+    if (err?.response?.status === 401) error.value = 'Silahkan login terlebih dahulu'
+    else alert(err?.response?.data?.message || err.message)
   }
 }
 
@@ -43,66 +73,61 @@ onMounted(fetchRoles)
 </script>
 
 <template>
-  <VRow>
-    <VCol cols="12">
-      <VCard>
-        <!-- Header Card -->
-        <VCardTitle class="d-flex align-center justify-space-between">
-          <span class="font-weight-bold">Data Roles</span>
-        </VCardTitle>
+  <div class="container mt-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4>Data Roles</h4>
+      <div>
+        <button class="btn btn-primary me-2" @click="openCreate">+ Tambah Role</button>
+        <button class="btn btn-secondary" @click="fetchRoles">Refresh</button>
+      </div>
+    </div>
 
-        <VCardText>
-          <div v-if="loading">Loading...</div>
-          <div v-else-if="error">Error: {{ error }}</div>
+    <div v-if="loading">Loading...</div>
+    <div v-else-if="error" class="alert alert-danger">{{ error }}</div>
+    <div v-else>
+      <DataTable
+        class="table table-hover table-bordered align-middle text-center w-100"
+        :data="roles"
+        :columns="[
+          { title: 'ID', data: 'id' },
+          { title: 'Role Name', data: 'nama_role' },
+          { title: 'Aksi', data: null, render: (d,t,row)=>`<button class='btn btn-warning btn-sm me-1 edit-btn'>Edit</button><button class='btn btn-danger btn-sm delete-btn'>Hapus</button>` }
+        ]"
+        :options="{
+          dom: 'Bfrtip',
+          buttons: ['copy','csv','excel','pdf','print'],
+          createdRow: function(row,data) {
+            const e = row.querySelector('.edit-btn'), del = row.querySelector('.delete-btn')
+            if (e) e.addEventListener('click', ()=> openEdit(data))
+            if (del) del.addEventListener('click', ()=> deleteRole(data.id))
+          },
+          responsive: true,
+          pageLength: 5
+        }"
+      />
+    </div>
 
-          <!-- DataTable -->
-          <div v-else>
-            <DataTable
-              class="table table-hover table-bordered align-middle text-center w-100"
-              :data="roles"
-              :columns="[ 
-                { title: 'ID', data: 'id' },
-                { title: 'Role Name', data: 'nama_role' }
-              ]"
-              :options="{
-                dom: 'Bfrtip',
-                buttons: ['copy', 'csv', 'excel', 'pdf', 'print'],
-                responsive: true,
-                pageLength: 5,
-                language: {
-                  search: 'Cari:',
-                  lengthMenu: 'Tampilkan _MENU_ data',
-                  info: 'Menampilkan _START_ - _END_ dari _TOTAL_ data',
-                  paginate: { next: '›', previous: '‹' }
-                }
-              }"
-            />
-          </div>
-        </VCardText>
-      </VCard>
-    </VCol>
-  </VRow>
+    <div v-if="showModal" class="modal-backdrop" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:1050;">
+      <div class="card p-3" style="width:360px;">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="m-0">{{ modalMode==='create' ? 'Tambah Role' : 'Edit Role' }}</h6>
+          <button class="btn btn-sm btn-outline-secondary" @click="showModal=false">×</button>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Nama Role</label>
+          <input class="form-control" v-model="form.nama_role" />
+        </div>
+        <div class="d-flex justify-content-end">
+          <button class="btn btn-secondary me-2" @click="showModal=false">Batal</button>
+          <button class="btn btn-primary" @click="submit">{{ modalMode==='create' ? 'Simpan' : 'Update' }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <style scoped>
-/* Rapihin tabel */
-table.dataTable {
-  border-collapse: collapse !important;
-  width: 100% !important;
-}
-
-table.dataTable th {
-  background-color: #f5f5f5;
-  font-weight: 600;
-  text-align: center;
-}
-
-table.dataTable td {
-  vertical-align: middle;
-  text-align: center;
-}
-
-table.dataTable tbody tr:hover {
-  background-color: #f9f9f9;
-}
+table.dataTable th { background:#f5f5f5; font-weight:600;text-align:center }
+table.dataTable td { text-align:center }
+.modal-backdrop { background: rgba(0,0,0,0.35) }
 </style>

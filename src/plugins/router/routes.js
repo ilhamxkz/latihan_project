@@ -41,10 +41,7 @@ export const routes = [
       },
       {
         path: 'roles',
-        component: () => import('@/pages/roles.vue'),
-
-        path: 'users/add',
-        component: () => import('@/pages/UserCreate.vue'),
+        component: () => import('@/pages/Role.vue'),
       },
     ],
   },

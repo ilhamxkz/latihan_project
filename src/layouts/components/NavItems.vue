@@ -14,6 +14,7 @@ const iconMap = {
   users: 'ri-user-line',
   user: 'ri-user-line',
   roles: 'ri-id-card-line',
+  role: 'ri-id-card-line',
   akses: 'ri-accessibility-line',
   login: 'ri-login-box-line'
 }
@@ -70,12 +71,6 @@ onMounted(async () => {
   <div v-else-if="error" class="message error">Error: {{ error }}</div>
 
   <template v-else>
-    <VerticalNavLink
-      :item="{
-        title: 'User',
-        to: '/dashboard',
-      }"
-    />
 
     <VerticalNavLink
       v-for="menu in menus"

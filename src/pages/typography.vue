@@ -1,206 +1,148 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import axios from 'axios'
-import { useRouter } from 'vue-router'
-
-// Import CSS Bootstrap + DataTables agar rapi
 import 'bootstrap/dist/css/bootstrap.min.css'
 import 'datatables.net-bs5/css/dataTables.bootstrap5.min.css'
 import 'datatables.net-buttons-bs5/css/buttons.bootstrap5.min.css'
-
-// DataTables
 import DataTable from 'datatables.net-vue3'
 import DataTablesCore from 'datatables.net-bs5'
 import Buttons from 'datatables.net-buttons-bs5'
-
-// Aktifkan DataTables core + buttons
 DataTable.use(DataTablesCore)
 DataTable.use(Buttons)
 
-// === STATE ===
-const users = ref([])
+const aksesList = ref([])
+const roles = ref([])
+const menus = ref([])
 const loading = ref(true)
 const error = ref(null)
-
-const router = useRouter()
-
-// === AXIOS INSTANCE (supaya selalu kirim token) ===
-const api = axios.create({
-  baseURL: 'http://localhost:8080/api',
-})
-
-api.interceptors.request.use((config) => {
+const api = axios.create({ baseURL: 'http://localhost:8080/api' })
+api.interceptors.request.use(cfg => {
   const token = localStorage.getItem('token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
+  if (token) cfg.headers.Authorization = `Bearer ${token}`
+  return cfg
 })
 
-// (Opsional) Interceptor response global untuk 401
-// api.interceptors.response.use(
-//   r => r,
-//   err => {
-//     if (err.response?.status === 401) {
-//       // Kalau mau redirect otomatis ke halaman login:
-//       // router.push('/login')
-//     }
-//     return Promise.reject(err)
-//   }
-// )
-
-// === AMBIL DATA DARI API /users ===
-const fetchUsers = async () => {
+const fetchAll = async () => {
   loading.value = true
   error.value = null
-
   try {
-    const response = await api.get('users')
-    console.log('Response API /users:', response.data)
-
-    // cek apakah responsenya array langsung atau ada wrapper "data"
-    if (Array.isArray(response.data)) {
-      users.value = response.data
-    } else if (Array.isArray(response.data.data)) {
-      users.value = response.data.data
-    } else {
-      users.value = []
-    }
+    const [rAkses, rRoles, rMenus] = await Promise.all([
+      api.get('/akses'),
+      api.get('/roles'),
+      api.get('/menus')
+    ])
+    aksesList.value = Array.isArray(rAkses.data.akses) ? rAkses.data.akses : (Array.isArray(rAkses.data) ? rAkses.data : [])
+    roles.value = Array.isArray(rRoles.data.roles) ? rRoles.data.roles : (Array.isArray(rRoles.data)? rRoles.data : [])
+    menus.value = Array.isArray(rMenus.data.menus) ? rMenus.data.menus : (Array.isArray(rMenus.data)? rMenus.data : [])
   } catch (err) {
-    // khusus 401 tampilkan pesan yang diminta
-    if (err.response?.status === 401) {
-      error.value = 'Silahkan login terlebih dahulu'
-      // Jika ingin auto-redirect ke login, uncomment:
-      // router.push('/login')
+    if (err?.response?.status === 401) error.value = 'Silahkan login terlebih dahulu'
+    else error.value = err?.response?.data?.message || err.message
+  } finally { loading.value = false }
+}
+
+/* modal */
+const showModal = ref(false)
+const modalMode = ref('create')
+const form = reactive({ id: null, role_id: null, menu_id: null })
+
+const openCreate = () => { modalMode.value='create'; form.id=null; form.role_id=null; form.menu_id=null; showModal.value=true }
+const openEdit = (row) => { modalMode.value='edit'; form.id=row.id; form.role_id=row.role_id; form.menu_id=row.menu_id; showModal.value=true }
+
+const submit = async () => {
+  try {
+    if (modalMode.value === 'create') {
+      await api.post('/akses', { role_id: form.role_id, menu_id: form.menu_id })
     } else {
-      error.value = err.response?.data?.message || err.message || 'Gagal ambil data'
+      await api.put(`/akses/${form.id}`, { role_id: form.role_id, menu_id: form.menu_id })
     }
-  } finally {
-    loading.value = false
+    showModal.value=false
+    await fetchAll()
+  } catch (err) {
+    if (err?.response?.status === 401) error.value='Silahkan login terlebih dahulu'
+    else alert(err?.response?.data?.message || err.message)
   }
 }
 
-// === HAPUS USER ===
-const deleteUser = async (id) => {
-  if (!confirm('Yakin ingin hapus user ini?')) return
-
+const deleteAkses = async (id) => {
+  if (!confirm('Hapus akses ini?')) return
   try {
-    await api.delete(`/users/${id}`)
-    // refresh data setelah sukses hapus
-    await fetchUsers()
+    await api.delete(`/akses/${id}`)
+    await fetchAll()
   } catch (err) {
-    if (err.response?.status === 401) {
-      error.value = 'Silahkan login terlebih dahulu'
-      // router.push('/login') // optional
-    } else {
-      alert('Gagal hapus user: ' + (err.response?.data?.message || err.message))
-    }
+    if (err?.response?.status === 401) error.value='Silahkan login terlebih dahulu'
+    else alert(err?.response?.data?.message || err.message)
   }
 }
 
-onMounted(fetchUsers)
+onMounted(fetchAll)
 </script>
 
 <template>
-  <VRow>
-    <VCol cols="12">
-      <VCard class="shadow-sm rounded-3">
-        <!-- Header Card -->
-        <VCardTitle class="d-flex align-center justify-space-between py-3 px-4 border-bottom">
-          <span class="fw-bold fs-5">Data User</span>
-          <div>
-            <button class="btn btn-primary" @click="router.push('/users/add')">+ Tambah User</button>
-          </div>
-        </VCardTitle>
+  <div class="container mt-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4>Data Akses</h4>
+      <div>
+        <button class="btn btn-primary me-2" @click="openCreate">+ Tambah Akses</button>
+        <button class="btn btn-secondary" @click="fetchAll">Refresh</button>
+      </div>
+    </div>
 
-        <!-- Konten Card -->
-        <VCardText class="p-4">
-          <div v-if="loading" class="text-center py-4">
-            <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Loading...</span>
-            </div>
-            <p class="mt-2">Sedang memuat data...</p>
-          </div>
+    <div v-if="loading">Loading...</div>
+    <div v-else-if="error" class="alert alert-danger">{{ error }}</div>
+    <div v-else>
+      <DataTable
+        class="table table-hover table-bordered align-middle text-center w-100"
+        :data="aksesList"
+        :columns="[
+          { title: 'ID', data: 'id' },
+          { title: 'Role', data: row => (row.role?.nama_role || row.Role?.nama_role || row.role_id) },
+          { title: 'Menu', data: row => (row.menu?.nama_menu || row.Menu?.nama_menu || row.menu_id) },
+          { title: 'Aksi', data: null, render: (d,t,row)=>`<button class='btn btn-warning btn-sm me-1 edit-btn'>Edit</button><button class='btn btn-danger btn-sm delete-btn'>Hapus</button>` }
+        ]"
+        :options="{
+          dom: 'Bfrtip',
+          buttons: ['copy','csv','excel','pdf','print'],
+          createdRow: function(row,data) {
+            const e = row.querySelector('.edit-btn'), del = row.querySelector('.delete-btn')
+            if (e) e.addEventListener('click', ()=> openEdit(data))
+            if (del) del.addEventListener('click', ()=> deleteAkses(data.id))
+          },
+          pageLength: 10
+        }"
+      />
+    </div>
 
-          <div v-else-if="error" class="alert alert-danger text-center">
-            {{ error }}
-            <!-- contoh tombol cepat ke login jika error 401 -->
-            <div v-if="error && error.toLowerCase().includes('login')" class="mt-2">
-              <button class="btn btn-sm btn-outline-light" @click="router.push('/login')">Login Sekarang</button>
-            </div>
-          </div>
-
-          <!-- DataTable -->
-          <div v-else>
-            <DataTable
-              class="table table-striped table-hover table-bordered align-middle text-center w-100"
-              :data="users"
-              :columns="[
-                { title: 'ID', data: 'id' },
-                { title: 'Username', data: 'username' },
-                { title: 'Email', data: 'email' },
-                {
-                  title: 'Aksi',
-                  data: null,
-                  render: (data, type, row) => {
-                    return `
-                      <button class='btn btn-warning btn-sm me-1 edit-btn'>Edit</button>
-                      <button class='btn btn-danger btn-sm delete-btn'>Hapus</button>
-                    `
-                  }
-                }
-              ]"
-              :options="{
-                dom: 'Bfrtip',
-                buttons: ['copy', 'csv', 'excel', 'pdf', 'print'],
-                responsive: true,
-                pageLength: 10,
-                createdRow: (row, data) => {
-                  // tambahkan event listener untuk tombol edit/hapus
-                  const editBtn = row.querySelector('.edit-btn')
-                  const delBtn = row.querySelector('.delete-btn')
-
-                  if (editBtn) {
-                    editBtn.addEventListener('click', () => {
-                      router.push(`/users/${data.id}/edit`)
-                    })
-                  }
-                  if (delBtn) {
-                    delBtn.addEventListener('click', () => {
-                      deleteUser(data.id)
-                    })
-                  }
-                },
-                language: {
-                  search: 'Cari:',
-                  lengthMenu: 'Tampilkan _MENU_ data',
-                  info: 'Menampilkan _START_ - _END_ dari _TOTAL_ data',
-                  paginate: { next: '›', previous: '‹' }
-                }
-              }"
-            />
-          </div>
-        </VCardText>
-      </VCard>
-    </VCol>
-  </VRow>
+    <!-- modal -->
+    <div v-if="showModal" class="modal-backdrop" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:1050;">
+      <div class="card p-3" style="width:420px;">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="m-0">{{ modalMode==='create' ? 'Tambah Akses' : 'Edit Akses' }}</h6>
+          <button class="btn btn-sm btn-outline-secondary" @click="showModal=false">×</button>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Role</label>
+          <select class="form-select" v-model="form.role_id">
+            <option :value="null">-- pilih role --</option>
+            <option v-for="r in roles" :key="r.id" :value="r.id">{{ r.nama_role || r.NamaRole || r.name || r.username }}</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Menu</label>
+          <select class="form-select" v-model="form.menu_id">
+            <option :value="null">-- pilih menu --</option>
+            <option v-for="m in menus" :key="m.id" :value="m.id">{{ m.nama_menu || m.NamaMenu || m.routes }}</option>
+          </select>
+        </div>
+        <div class="d-flex justify-content-end">
+          <button class="btn btn-secondary me-2" @click="showModal=false">Batal</button>
+          <button class="btn btn-primary" @click="submit">{{ modalMode==='create' ? 'Simpan' : 'Update' }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <style scoped>
-/* Tambahan styling agar lebih rapi */
-table.dataTable th {
-  background-color: #f8f9fa;
-  font-weight: 600;
-  text-align: center;
-}
-
-table.dataTable td {
-  vertical-align: middle;
-  text-align: center;
-}
-
-table.dataTable tbody tr:hover {
-  background-color: #f1f1f1;
-  transition: background-color 0.2s;
-}
+table.dataTable th { background:#f5f5f5; font-weight:600; text-align:center }
+.modal-backdrop { background: rgba(0,0,0,0.35) }
 </style>
