@@ -1,115 +1,116 @@
 <script setup>
-import AnalyticsAward from '@/views/dashboard/AnalyticsAward.vue'
-import AnalyticsBarCharts from '@/views/dashboard/AnalyticsBarCharts.vue'
-import AnalyticsDepositWithdraw from '@/views/dashboard/AnalyticsDepositWithdraw.vue'
-import AnalyticsSalesByCountries from '@/views/dashboard/AnalyticsSalesByCountries.vue'
-import AnalyticsTotalEarning from '@/views/dashboard/AnalyticsTotalEarning.vue'
-import AnalyticsTotalProfitLineCharts from '@/views/dashboard/AnalyticsTotalProfitLineCharts.vue'
-import AnalyticsTransactions from '@/views/dashboard/AnalyticsTransactions.vue'
-import AnalyticsUserTable from '@/views/dashboard/AnalyticsUserTable.vue'
-import AnalyticsWeeklyOverview from '@/views/dashboard/AnalyticsWeeklyOverview.vue'
-import CardStatisticsVertical from '@core/components/cards/CardStatisticsVertical.vue'
+import { ref, onMounted } from 'vue'
+import axios from 'axios'
+import { useRouter } from 'vue-router'
 
-const totalProfit = {
-  title: 'Total Profit',
-  color: 'secondary',
-  icon: 'ri-pie-chart-2-line',
-  stats: '$25.6k',
-  change: 42,
-  subtitle: 'Weekly Project',
+import 'bootstrap/dist/css/bootstrap.min.css'
+import 'datatables.net-bs5/css/dataTables.bootstrap5.min.css'
+import 'datatables.net-buttons-bs5/css/buttons.bootstrap5.min.css'
+
+import DataTable from 'datatables.net-vue3'
+import DataTablesCore from 'datatables.net-bs5'
+import Buttons from 'datatables.net-buttons-bs5'
+
+DataTable.use(DataTablesCore)
+DataTable.use(Buttons)
+
+const users = ref([])
+const loading = ref(true)
+const error = ref(null)
+
+const API_URL = 'http://localhost:8000/api/users'
+const router = useRouter()
+
+const fetchUsers = async () => {
+  loading.value = true
+  error.value = null
+  try {
+    const response = await axios.get(API_URL)
+    users.value = Array.isArray(response.data.data) ? response.data.data : []
+  } catch (err) {
+    error.value = err.response?.data?.message || err.message || 'Gagal ambil data'
+  } finally {
+    loading.value = false
+  }
 }
 
-const newProject = {
-  title: 'New Project',
-  color: 'primary',
-  icon: 'ri-file-word-2-line',
-  stats: '862',
-  change: -18,
-  subtitle: 'Yearly Project',
+const deleteUser = async (id) => {
+  if (confirm('Yakin ingin hapus user ini?')) {
+    try {
+      await axios.delete(`${API_URL}/${id}`)
+      await fetchUsers()
+    } catch (err) {
+      alert('Gagal hapus user: ' + (err.response?.data?.message || err.message))
+    }
+  }
 }
+
+onMounted(fetchUsers)
 </script>
 
 <template>
-  <VRow class="match-height">
-    <VCol
-      cols="12"
-      md="4"
-    >
-      <AnalyticsAward />
-    </VCol>
+  <div class="container mt-4">
+    <div class="d-flex justify-content-between mb-3">
+      <h3>Data User</h3>
+      <button class="btn btn-primary" @click="router.push('/users/add')">+ Tambah User</button>
+    </div>
 
-    <VCol
-      cols="12"
-      md="8"
-    >
-      <AnalyticsTransactions />
-    </VCol>
+    <div v-if="loading" class="text-center py-4">
+      <div class="spinner-border text-primary" role="status"></div>
+      <p class="mt-2">Sedang memuat data...</p>
+    </div>
 
-    <VCol
-      cols="12"
-      md="4"
-    >
-      <AnalyticsWeeklyOverview />
-    </VCol>
+    <div v-else-if="error" class="alert alert-danger text-center">
+      {{ error }}
+    </div>
 
-    <VCol
-      cols="12"
-      md="4"
-    >
-      <AnalyticsTotalEarning />
-    </VCol>
-
-    <VCol
-      cols="12"
-      md="4"
-    >
-      <VRow class="match-height">
-        <VCol
-          cols="12"
-          sm="6"
-        >
-          <AnalyticsTotalProfitLineCharts />
-        </VCol>
-
-        <VCol
-          cols="12"
-          sm="6"
-        >
-          <CardStatisticsVertical v-bind="totalProfit" />
-        </VCol>
-
-        <VCol
-          cols="12"
-          sm="6"
-        >
-          <CardStatisticsVertical v-bind="newProject" />
-        </VCol>
-
-        <VCol
-          cols="12"
-          sm="6"
-        >
-          <AnalyticsBarCharts />
-        </VCol>
-      </VRow>
-    </VCol>
-
-    <VCol
-      cols="12"
-      md="4"
-    >
-      <AnalyticsSalesByCountries />
-    </VCol>
-
-    <VCol
-      cols="12"
-      md="8"
-    >
-      <AnalyticsDepositWithdraw />
-    </VCol>
-
-    <VCol cols="12">
-      <AnalyticsUserTable />
-    </VCol>
-  </VRow>
+    <div v-else>
+      <DataTable
+        class="table table-striped table-hover table-bordered align-middle text-center w-100"
+        :data="users"
+        :columns="[
+          { title: 'ID', data: 'id' },
+          { title: 'Username', data: 'username' },
+          { title: 'Email', data: 'email' },
+          { 
+            title: 'Aksi', 
+            data: null,
+            render: (data, type, row) => {
+              return `
+                <button class='btn btn-warning btn-sm me-1 edit-btn'>Edit</button>
+                <button class='btn btn-danger btn-sm delete-btn'>Hapus</button>
+              `
+            }
+          }
+        ]"
+        :options="{
+          dom: 'lBfrtip',
+          buttons: ['copy', 'csv', 'excel', 'pdf', 'print'],
+          pageLength: 10,
+          lengthMenu: [[10, 25, 50], [10, 25, 50]],
+          createdRow: (row, data) => {
+            row.querySelector('.edit-btn').addEventListener('click', () => router.push(`/users/${data.id}/edit`))
+            row.querySelector('.delete-btn').addEventListener('click', () => deleteUser(data.id))
+          }
+        }"
+      />
+    </div>
+  </div>
 </template>
+
+
+<style scoped>
+table.dataTable th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  text-align: center;
+}
+table.dataTable td {
+  vertical-align: middle;
+  text-align: center;
+}
+table.dataTable tbody tr:hover {
+  background-color: #f1f1f1;
+  transition: background-color 0.2s;
+}
+</style>
