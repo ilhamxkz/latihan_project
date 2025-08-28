@@ -10,7 +10,7 @@ const handleLogout = async () => {
     const token = localStorage.getItem('token') || sessionStorage.getItem('token')
 
     await axios.post(
-      'http://localhost:8000/api/logout',
+      'http://localhost:8080/api/logout',
       {},
       { headers: { Authorization: `Bearer ${token}` } }
     )

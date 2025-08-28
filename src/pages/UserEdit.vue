@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { useRouter, useRoute } from 'vue-router'
 
-const API_URL = 'http://localhost:8000/api/users'
+const API_URL = 'http://localhost:8080/api/users'
 const router = useRouter()
 const route = useRoute()
 

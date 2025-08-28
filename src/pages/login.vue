@@ -32,7 +32,7 @@ const authThemeMask = computed(() => {
   return vuetifyTheme.global.name.value === 'light' ? authV1MaskLight : authV1MaskDark
 })
 
-const API_URL = 'http://localhost:8000/login'
+const API_URL = 'http://localhost:8080/api/login'
 
 const login = async () => {
   if (!form.value.username || !form.value.password) {

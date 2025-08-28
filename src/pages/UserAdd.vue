@@ -8,7 +8,7 @@ const email = ref('')
 const password = ref('')
 
 const router = useRouter()
-const API_URL = 'http://localhost:8000/api/users'
+const API_URL = 'http://localhost:8080/api/users'
 
 const saveUser = async () => {
   try {

@@ -18,8 +18,19 @@ const users = ref([])
 const loading = ref(true)
 const error = ref(null)
 
-const API_URL = 'http://localhost:8000/api/users'
+const API_URL = 'http://localhost:8080/api/users'
 const router = useRouter()
+
+// helper untuk menangani error, termasuk 401
+const handleError = (err) => {
+  const status = err.response?.status
+  if (status === 401) {
+    // Pesan yang diinginkan user
+    error.value = 'Silahkan login terlebih dahulu'
+  } else {
+    error.value = err.response?.data?.message || err.message || 'Gagal ambil data'
+  }
+}
 
 const fetchUsers = async () => {
   loading.value = true
@@ -28,7 +39,7 @@ const fetchUsers = async () => {
     const response = await axios.get(API_URL)
     users.value = Array.isArray(response.data.data) ? response.data.data : []
   } catch (err) {
-    error.value = err.response?.data?.message || err.message || 'Gagal ambil data'
+    handleError(err)
   } finally {
     loading.value = false
   }
@@ -40,7 +51,13 @@ const deleteUser = async (id) => {
       await axios.delete(`${API_URL}/${id}`)
       await fetchUsers()
     } catch (err) {
-      alert('Gagal hapus user: ' + (err.response?.data?.message || err.message))
+      if (err.response?.status === 401) {
+        // konsisten dengan pesan 401
+        error.value = 'Silahkan login terlebih dahulu'
+        // router.push('/login') // optional
+      } else {
+        alert('Gagal hapus user: ' + (err.response?.data?.message || err.message))
+      }
     }
   }
 }

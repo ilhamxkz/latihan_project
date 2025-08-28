@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
 
-const API_URL = 'http://localhost:8000/api/users'
+const API_URL = 'http://localhost:8080/api/users'
 const router = useRouter()
 
 // pastikan field sesuai dengan API backend (ganti id_role -> role_id kalau perlu)
@@ -52,7 +52,7 @@ const createUser = async () => {
         <input v-model.number="formUser.role_id" type="number" class="form-control" required />
       </div>
       <button type="submit" class="btn btn-success">Simpan</button>
-      <button type="button" class="btn btn-secondary ms-2" @click="router.push('/dashborad')">Batal</button>
+      <button type="button" class="btn btn-secondary ms-2" @click="router.push('/dashboard')">Batal</button>
     </form>
   </div>
 </template>

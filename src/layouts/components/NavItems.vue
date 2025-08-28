@@ -62,7 +62,7 @@ onMounted(async () => {
 </script>
 
 <template>
-<<<<<<< HEAD
+
   <VerticalNavSectionTitle :item="{ heading: 'Apps & Pages' }" />
 
   <div v-if="loading" class="message loading">Memuat menu...</div>
@@ -71,64 +71,19 @@ onMounted(async () => {
 
   <template v-else>
     <VerticalNavLink
-      v-for="menu in menus"
-      :key="menu.id"
-      :item="{ title: menu.title, icon: menu.icon, to: menu.to }"
-    />
-  </template>
-=======
-  <!-- 👉 Dashboards -->
-  <VerticalNavGroup
-    :item="{
-      title: 'Dashboards',
-      badgeContent: '5',
-      badgeClass: 'bg-error',
-      icon: 'ri-home-smile-line',
-    }"
-  >
-    <VerticalNavLink
       :item="{
         title: 'User',
         to: '/dashboard',
       }"
     />
-  </VerticalNavGroup>
 
+    <VerticalNavLink
+      v-for="menu in menus"
+      :key="menu.id"
+      :item="{ title: menu.title, icon: menu.icon, to: menu.to }"
+    />
+  </template>
 
-  <!-- 👉 Apps & Pages -->
-  <VerticalNavSectionTitle
-    :item="{
-      heading: 'Apps & Pages',
-    }"
-  />
-
-  <VerticalNavLink
-    :item="{
-      title: 'Role',
-      icon: 'ri-user-settings-line',
-      to: '/account-settings',
-    }"
-  />
-
-  <VerticalNavLink
-    :item="{
-      title: 'Akses',
-      icon: 'ri-user-settings-line',
-      to: '/typography',
-    }"
-  />
-
-  <VerticalNavLink
-    :item="{
-      title: 'Login',
-      icon: 'ri-login-box-line',
-      to: '/login',
-    }"
-  />
- 
-
-  
->>>>>>> remotes/origin/Fiqqri
 </template>
 
 <style scoped>

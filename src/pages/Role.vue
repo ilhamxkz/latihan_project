@@ -15,7 +15,7 @@ const roles = ref([])
 const loading = ref(true)
 const error = ref(null)
 
-const API_ROLES = 'http://localhost:8000/api/roles'
+const API_ROLES = 'http://localhost:8080/api/roles'
 
 // Ambil data roles
 const fetchRoles = async () => {

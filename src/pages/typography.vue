@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { useRouter } from 'vue-router'
 
 // Import CSS Bootstrap + DataTables agar rapi
 import 'bootstrap/dist/css/bootstrap.min.css'
@@ -17,15 +18,15 @@ DataTable.use(DataTablesCore)
 DataTable.use(Buttons)
 
 // === STATE ===
-const akses = ref([])
+const users = ref([])
 const loading = ref(true)
 const error = ref(null)
 
-const API_URL = 'http://localhost:8000/api/akses'
+const router = useRouter()
 
 // === AXIOS INSTANCE (supaya selalu kirim token) ===
 const api = axios.create({
-  baseURL: 'http://localhost:8000/api',
+  baseURL: 'http://localhost:8080/api',
 })
 
 api.interceptors.request.use((config) => {
@@ -36,32 +37,68 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// === AMBIL DATA DARI API ===
-const fetchAkses = async () => {
+// (Opsional) Interceptor response global untuk 401
+// api.interceptors.response.use(
+//   r => r,
+//   err => {
+//     if (err.response?.status === 401) {
+//       // Kalau mau redirect otomatis ke halaman login:
+//       // router.push('/login')
+//     }
+//     return Promise.reject(err)
+//   }
+// )
+
+// === AMBIL DATA DARI API /users ===
+const fetchUsers = async () => {
   loading.value = true
   error.value = null
 
   try {
-    const response = await api.get('/akses')
-
-    console.log('Response API:', response.data)
+    const response = await api.get('users')
+    console.log('Response API /users:', response.data)
 
     // cek apakah responsenya array langsung atau ada wrapper "data"
     if (Array.isArray(response.data)) {
-      akses.value = response.data
+      users.value = response.data
     } else if (Array.isArray(response.data.data)) {
-      akses.value = response.data.data
+      users.value = response.data.data
     } else {
-      akses.value = []
+      users.value = []
     }
   } catch (err) {
-    error.value = err.response?.data?.message || err.message || 'Gagal ambil data'
+    // khusus 401 tampilkan pesan yang diminta
+    if (err.response?.status === 401) {
+      error.value = 'Silahkan login terlebih dahulu'
+      // Jika ingin auto-redirect ke login, uncomment:
+      // router.push('/login')
+    } else {
+      error.value = err.response?.data?.message || err.message || 'Gagal ambil data'
+    }
   } finally {
     loading.value = false
   }
 }
 
-onMounted(fetchAkses)
+// === HAPUS USER ===
+const deleteUser = async (id) => {
+  if (!confirm('Yakin ingin hapus user ini?')) return
+
+  try {
+    await api.delete(`/users/${id}`)
+    // refresh data setelah sukses hapus
+    await fetchUsers()
+  } catch (err) {
+    if (err.response?.status === 401) {
+      error.value = 'Silahkan login terlebih dahulu'
+      // router.push('/login') // optional
+    } else {
+      alert('Gagal hapus user: ' + (err.response?.data?.message || err.message))
+    }
+  }
+}
+
+onMounted(fetchUsers)
 </script>
 
 <template>
@@ -70,7 +107,10 @@ onMounted(fetchAkses)
       <VCard class="shadow-sm rounded-3">
         <!-- Header Card -->
         <VCardTitle class="d-flex align-center justify-space-between py-3 px-4 border-bottom">
-          <span class="fw-bold fs-5">Data Akses</span>
+          <span class="fw-bold fs-5">Data User</span>
+          <div>
+            <button class="btn btn-primary" @click="router.push('/users/add')">+ Tambah User</button>
+          </div>
         </VCardTitle>
 
         <!-- Konten Card -->
@@ -84,23 +124,53 @@ onMounted(fetchAkses)
 
           <div v-else-if="error" class="alert alert-danger text-center">
             {{ error }}
+            <!-- contoh tombol cepat ke login jika error 401 -->
+            <div v-if="error && error.toLowerCase().includes('login')" class="mt-2">
+              <button class="btn btn-sm btn-outline-light" @click="router.push('/login')">Login Sekarang</button>
+            </div>
           </div>
 
           <!-- DataTable -->
           <div v-else>
             <DataTable
               class="table table-striped table-hover table-bordered align-middle text-center w-100"
-              :data="akses"
+              :data="users"
               :columns="[
                 { title: 'ID', data: 'id' },
-                { title: 'Role', data: 'id_menu' },
-                { title: 'Menu', data: 'id_role' }
+                { title: 'Username', data: 'username' },
+                { title: 'Email', data: 'email' },
+                {
+                  title: 'Aksi',
+                  data: null,
+                  render: (data, type, row) => {
+                    return `
+                      <button class='btn btn-warning btn-sm me-1 edit-btn'>Edit</button>
+                      <button class='btn btn-danger btn-sm delete-btn'>Hapus</button>
+                    `
+                  }
+                }
               ]"
               :options="{
                 dom: 'Bfrtip',
                 buttons: ['copy', 'csv', 'excel', 'pdf', 'print'],
                 responsive: true,
-                pageLength: 5,
+                pageLength: 10,
+                createdRow: (row, data) => {
+                  // tambahkan event listener untuk tombol edit/hapus
+                  const editBtn = row.querySelector('.edit-btn')
+                  const delBtn = row.querySelector('.delete-btn')
+
+                  if (editBtn) {
+                    editBtn.addEventListener('click', () => {
+                      router.push(`/users/${data.id}/edit`)
+                    })
+                  }
+                  if (delBtn) {
+                    delBtn.addEventListener('click', () => {
+                      deleteUser(data.id)
+                    })
+                  }
+                },
                 language: {
                   search: 'Cari:',
                   lengthMenu: 'Tampilkan _MENU_ data',

@@ -36,17 +36,15 @@ export const routes = [
         component: () => import('@/pages/form-layouts.vue'),
       },
       {
-<<<<<<< HEAD
         path: 'users',
         component: () => import('@/pages/users.vue'),
       },
       {
         path: 'roles',
         component: () => import('@/pages/roles.vue'),
-=======
+
         path: 'users/add',
         component: () => import('@/pages/UserCreate.vue'),
->>>>>>> remotes/origin/Fiqqri
       },
     ],
   },

@@ -3,13 +3,13 @@ import NavItems from '@/layouts/components/NavItems.vue'
 import Sidelogin from '@/layouts/components/Sidelogin.vue'
 import logo from '@images/logo.svg?raw'
 import VerticalNavLayout from '@layouts/components/VerticalNavLayout.vue'
-import SideLogout from './SideLogout.vue'
+
 
 // Components
 import Footer from '@/layouts/components/Footer.vue'
 import NavbarThemeSwitcher from '@/layouts/components/NavbarThemeSwitcher.vue'
 import UserProfile from '@/layouts/components/UserProfile.vue'
-import Sidelogout from './Sidelogout.vue'
+import SideLogout from './SideLogout.vue'
 </script>
 
 <template>
@@ -90,9 +90,8 @@ import Sidelogout from './Sidelogout.vue'
     <template #vertical-nav-content>
       
       <Sidelogin />
-            <Sidelogout />
+      <SideLogout />
       <NavItems />
-      <side-logout/>
     </template>
 
 
