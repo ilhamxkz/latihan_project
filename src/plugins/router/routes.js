@@ -16,8 +16,8 @@ export const routes = [
         component: () => import('@/pages/Role.vue'),
       },
       {
-        path: 'typography',
-        component: () => import('@/pages/typography.vue'),
+        path: 'akses',
+        component: () => import('@/pages/akses.vue'),
       },
       {
         path: 'icons',

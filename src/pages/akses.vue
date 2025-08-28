@@ -100,14 +100,16 @@ onMounted(fetchAll)
           { title: 'Aksi', data: null, render: (d,t,row)=>`<button class='btn btn-warning btn-sm me-1 edit-btn'>Edit</button><button class='btn btn-danger btn-sm delete-btn'>Hapus</button>` }
         ]"
         :options="{
-          dom: 'Bfrtip',
+                  dom: 'lBfrtip',       // 'l' = length menu (entries per page) default DataTables
           buttons: ['copy','csv','excel','pdf','print'],
-          createdRow: function(row,data) {
+          responsive: true,
+          pageLength: 5,
+          lengthMenu: [[5,10,25,50,100],[5,10,25,50,100]],          createdRow: function(row,data) {
             const e = row.querySelector('.edit-btn'), del = row.querySelector('.delete-btn')
             if (e) e.addEventListener('click', ()=> openEdit(data))
             if (del) del.addEventListener('click', ()=> deleteAkses(data.id))
           },
-          pageLength: 10
+
         }"
       />
     </div>

@@ -1,12 +1,12 @@
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
 import axios from 'axios'
 import 'bootstrap/dist/css/bootstrap.min.css'
+import DataTablesCore from 'datatables.net-bs5'
 import 'datatables.net-bs5/css/dataTables.bootstrap5.min.css'
+import Buttons from 'datatables.net-buttons-bs5'
 import 'datatables.net-buttons-bs5/css/buttons.bootstrap5.min.css'
 import DataTable from 'datatables.net-vue3'
-import DataTablesCore from 'datatables.net-bs5'
-import Buttons from 'datatables.net-buttons-bs5'
+import { onMounted, reactive, ref } from 'vue'
 DataTable.use(DataTablesCore)
 DataTable.use(Buttons)
 
@@ -94,15 +94,17 @@ onMounted(fetchRoles)
           { title: 'Aksi', data: null, render: (d,t,row)=>`<button class='btn btn-warning btn-sm me-1 edit-btn'>Edit</button><button class='btn btn-danger btn-sm delete-btn'>Hapus</button>` }
         ]"
         :options="{
-          dom: 'Bfrtip',
+                  dom: 'lBfrtip',       // 'l' = length menu (entries per page) default DataTables
           buttons: ['copy','csv','excel','pdf','print'],
+          responsive: true,
+          pageLength: 5,
+          lengthMenu: [[5,10,25,50,100],[5,10,25,50,100]],
           createdRow: function(row,data) {
             const e = row.querySelector('.edit-btn'), del = row.querySelector('.delete-btn')
             if (e) e.addEventListener('click', ()=> openEdit(data))
             if (del) del.addEventListener('click', ()=> deleteRole(data.id))
           },
-          responsive: true,
-          pageLength: 5
+
         }"
       />
     </div>
